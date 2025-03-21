@@ -17,10 +17,10 @@ jobs:
       - name: Auto green
         run: |
           set -e
-          git config --local user.email "xi888fu@gmail.com"  
-          git config --local user.name "Biang8"  
-          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}  
+          git config --local user.email "xi888fu@gmail.com"
+          git config --local user.name "Biang8"
+          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git pull --rebase
           commit_message="Keep writing documents at $(date +'%Y-%m-%d %H:%M:%S')"
           git commit --allow-empty -m "$commit_message"
-          git push    
+          git push
