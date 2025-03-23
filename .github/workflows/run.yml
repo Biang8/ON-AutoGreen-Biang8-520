@@ -45,7 +45,7 @@ jobs:
           set -e
           git config --local user.email ${{ secrets.EMAIL }}
           git config --local user.name ${{ secrets.NAME }}
-          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git remote set-url origin https://${{ github.actor }}:${{ secrets.MY_PERSONAL_ACCESS_TOKEN }}@github.com/${{ github.repository }}
           echo "Remote repository URL: $(git remote get-url origin)"
           git pull --rebase
           commit_message="Keep writing documents at $(date +'%Y-%m-%d %H:%M:%S')"
@@ -68,19 +68,35 @@ jobs:
   keep_last_three_runs:
     runs-on: ubuntu-latest
     steps:
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
       - name: Get all workflow runs
         id: get-runs
         run: |
-          runs=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs" | jq -r '.workflow_runs[].id')
+          runs=$(curl -s -H "Authorization: token ${{ secrets.MY_PERSONAL_ACCESS_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs" | jq -r '.workflow_runs[].id')
+          if [ -z "$runs" ]; then
+            echo "No workflow runs found."
+            exit 0
+          fi
           echo "::set-output name=runs::$runs"
       - name: Delete old runs
         run: |
-          runs=(${{ steps.get-runs.outputs.runs }})
+          runs=(${{ steps.get-runs.outputs.runs }})  
           num_runs=${#runs[@]}
           if [ $num_runs -gt 3 ]; then
             for ((i=0; i<num_runs-3; i++)); do
               run_id=${runs[$i]}
-              curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
-              echo "Deleted run $run_id"
+              response=$(curl -s -w "%{http_code}" -X DELETE -H "Authorization: token ${{ secrets.MY_PERSONAL_ACCESS_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id")
+              status_code=${response: -3}
+              body=${response%???}
+              if [ $status_code -eq 204 ]; then
+                echo "Successfully deleted run $run_id"
+              else
+                echo "Failed to delete run $run_id. Status code: $status_code, Response body: $body"
+              fi
             done
+          else
+            echo "There are less than or equal to 3 workflow runs. No deletion needed."
           fi    
