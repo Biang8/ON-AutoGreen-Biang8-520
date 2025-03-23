@@ -1,26 +1,47 @@
 name: ci
 
 on:
+  # 手动触发事件
+  workflow_dispatch:
+    inputs:
+      enable:
+        description: "启用或禁用自动 GitHub 自动全绿功能"
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
   push:
     branches:
       - master
   schedule:
-    - cron: "*/20 * * * *"
+    # 每 15 分钟尝试触发一次，一天有 96 个 15 分钟的时间段
+    - cron: "*/15 * * * *"
 
 jobs:
   autogreen:
     runs-on: ubuntu-latest
+    # 检查是否满足触发条件
+    if: |
+      (github.event_name == 'schedule' && (
+        (github.run_number % 4) == 0 ||
+        (github.run_number % 3) == 0 ||
+        (github.run_number % 2) == 0
+      )) ||
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.enable == 'true')
     steps:
-      - name: Clone repository
+      - name: Clone repository  
         uses: actions/checkout@v3
 
       - name: Auto green
         run: |
           set -e
-          git config --local user.email "xi888fu@gmail.com"
-          git config --local user.name "Biang8"
+          git config --local user.email ${{ secrets.EMAIL }}
+          git config --local user.name ${{ secrets.NAME }}
           git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git pull --rebase
           commit_message="Keep writing documents at $(date +'%Y-%m-%d %H:%M:%S')"
           git commit --allow-empty -m "$commit_message"
-          git push
+          git push 
