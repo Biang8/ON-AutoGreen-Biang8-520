@@ -11,7 +11,7 @@
 ## 使用
 
 - 点右上角 **Use this template** 按钮复制本 GitHub 仓库，**:warning: 千万不要 Fork，因为 fork 项目的动态并不会让你变绿，而且你的账号可能会被 github 查封！ :warning:**
-- 配置 Secrets：在仓库的设置中添加 `EMAIL`、`NAME` 和 `GITHUB_TOKEN` 三个 Secrets，分别对应你的邮箱、昵称和 GitHub 访问令牌。
+- 配置 Secrets：在仓库的设置中添加 `EMAIL`、`NAME` 和 `GITHUB_TOKEN` 三个 Secrets，分别对应你的邮箱、用户名和 GitHub 访问令牌。
 - （可选）修改 [ci.yml 文件的第 26 行](https://github.com/justjavac/auto-green/blob/master/.github/workflows/ci.yml#L26) 来调整定时任务的触发条件，当前配置为每 15 分钟尝试触发一次，且在 `github.run_number` 能被 2、3 或 4 整除时才会真正执行任务。
 - （可选）你可以通过修改 [ci.yml 文件的第 20 行](https://github.com/justjavac/auto-green/blob/master/.github/workflows/ci.yml#L20) 来调整定时任务的频率。
 
