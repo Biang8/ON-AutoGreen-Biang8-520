@@ -57,6 +57,30 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'delete'
     steps:
+      - name: Print event details
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Branch ref: ${{ github.event.ref }}"
       - name: Print deletion message
         run: |
-          echo "Branch ${{ github.event.ref }} has been deleted. Cleaning up related resources if needed."    
+          echo "Branch ${{ github.event.ref }} has been deleted. Cleaning up related resources if needed."
+
+  keep_last_three_runs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get all workflow runs
+        id: get-runs
+        run: |
+          runs=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs" | jq -r '.workflow_runs[].id')
+          echo "::set-output name=runs::$runs"
+      - name: Delete old runs
+        run: |
+          runs=(${{ steps.get-runs.outputs.runs }})
+          num_runs=${#runs[@]}
+          if [ $num_runs -gt 3 ]; then
+            for ((i=0; i<num_runs-3; i++)); do
+              run_id=${runs[$i]}
+              curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
+              echo "Deleted run $run_id"
+            done
+          fi    
