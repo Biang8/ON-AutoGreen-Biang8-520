@@ -18,6 +18,9 @@ on:
   schedule:
     # 每 15 分钟尝试触发一次，一天有 96 个 15 分钟的时间段
     - cron: "*/15 * * * *"
+  delete:
+    branches:
+      - '*'
 
 jobs:
   autogreen:
@@ -48,4 +51,12 @@ jobs:
           commit_message="Keep writing documents at $(date +'%Y-%m-%d %H:%M:%S')"
           git commit --allow-empty -m "$commit_message"
           echo "Trying to push changes..."
-          git push || { echo "Push failed. Check the remote repository URL and permissions."; exit 1; }    
+          git push || { echo "Push failed. Check the remote repository URL and permissions."; exit 1; }
+
+  auto_delete:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'delete'
+    steps:
+      - name: Print deletion message
+        run: |
+          echo "Branch ${{ github.event.ref }} has been deleted. Cleaning up related resources if needed."    
