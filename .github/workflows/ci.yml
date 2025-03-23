@@ -18,16 +18,10 @@ on:
   schedule:
     # 每 15 分钟尝试触发一次，一天有 96 个 15 分钟的时间段
     - cron: "*/15 * * * *"
-  delete:
-    branches:
-      - '*'
 
 jobs:
   autogreen:
     runs-on: ubuntu-latest
-    # 设置环境变量 OWNER
-    env:
-      OWNER: ${{ github.repository_owner }}
     # 检查是否满足触发条件
     if: |
       (github.event_name == 'schedule' &&
@@ -48,63 +42,8 @@ jobs:
           set -e
           git config --local user.email ${{ secrets.EMAIL }}
           git config --local user.name ${{ secrets.NAME }}
-          git remote set-url origin https://${{ github.actor }}:${{ secrets.MY_PERSONAL_ACCESS_TOKEN }}@github.com/${{ github.repository }}
-          echo "Remote repository URL: $(git remote get-url origin)"
+          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git pull --rebase
           commit_message="Keep writing documents at $(date +'%Y-%m-%d %H:%M:%S')"
           git commit --allow-empty -m "$commit_message"
-          echo "Trying to push changes..."
-          git push || { echo "Push failed. Check the remote repository URL and permissions."; exit 1; }
-
-  auto_delete:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'delete'
-    steps:
-      - name: Print event details
-        run: |
-          echo "Event name: ${{ github.event_name }}"
-          echo "Branch ref: ${{ github.event.ref }}"
-      - name: Print deletion message
-        run: |
-          echo "Branch ${{ github.event.ref }} has been deleted. Cleaning up related resources if needed."
-
-  keep_last_three_runs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install jq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-      - name: Get all workflow runs
-        id: get-runs
-        run: |
-          runs=$(curl -s -H "Authorization: token ${{ secrets.MY_PERSONAL_ACCESS_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs" | jq -r '.workflow_runs[].id')
-          if [ -z "$runs" ]; then
-            echo "No workflow runs found."
-            exit 0
-          fi
-          echo "::set-output name=runs::$runs"
-          echo "All workflow run IDs: $runs"  # 添加调试信息
-      - name: Delete old runs
-        run: |
-          runs=(${{ steps.get-runs.outputs.runs }})
-          num_runs=${#runs[@]}
-          echo "Total number of workflow runs: $num_runs"  # 添加调试信息
-          if [ $num_runs -gt 3 ]; then
-            for ((i=0; i<num_runs-3; i++)); do
-              run_id=${runs[$i]}
-              echo "Trying to delete run ID: $run_id"  # 添加调试信息
-              response=$(curl -s -w "%{http_code}" -X DELETE -H "Authorization: token ${{ secrets.MY_PERSONAL_ACCESS_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id")
-              status_code=${response: -3}
-              body=${response%???}
-              if [ $status_code -eq 204 ]; then
-                echo "Successfully deleted run $run_id"
-              else
-                echo "Failed to delete run $run_id. Status code: $status_code, Response body: $body"
-                echo "Full response: $response"  # 添加完整响应信息
-                echo "Curl command: curl -s -w \"%{http_code}\" -X DELETE -H \"Authorization: token ${{ secrets.MY_PERSONAL_ACCESS_TOKEN }}\" \"https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id\""  # 添加 curl 命令信息
-              fi
-            done
-          else
-            echo "There are less than or equal to 3 workflow runs. No deletion needed."
-          fi    
+          git push    
