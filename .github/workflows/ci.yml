@@ -25,6 +25,9 @@ on:
 jobs:
   autogreen:
     runs-on: ubuntu-latest
+    # 设置环境变量 OWNER
+    env:
+      OWNER: ${{ github.repository_owner }}
     # 检查是否满足触发条件
     if: |
       (github.event_name == 'schedule' &&
@@ -81,13 +84,16 @@ jobs:
             exit 0
           fi
           echo "::set-output name=runs::$runs"
+          echo "All workflow run IDs: $runs"  # 添加调试信息
       - name: Delete old runs
         run: |
           runs=(${{ steps.get-runs.outputs.runs }})
           num_runs=${#runs[@]}
+          echo "Total number of workflow runs: $num_runs"  # 添加调试信息
           if [ $num_runs -gt 3 ]; then
             for ((i=0; i<num_runs-3; i++)); do
               run_id=${runs[$i]}
+              echo "Trying to delete run ID: $run_id"  # 添加调试信息
               response=$(curl -s -w "%{http_code}" -X DELETE -H "Authorization: token ${{ secrets.MY_PERSONAL_ACCESS_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id")
               status_code=${response: -3}
               body=${response%???}
