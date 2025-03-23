@@ -24,11 +24,13 @@ jobs:
     runs-on: ubuntu-latest
     # 检查是否满足触发条件
     if: |
-      (github.event_name == 'schedule' && (
-        (github.run_number % 4) == 0 ||
-        (github.run_number % 3) == 0 ||
-        (github.run_number % 2) == 0
-      )) ||
+      (github.event_name == 'schedule' &&
+        (
+          "`expr ${{ github.run_number }} % 4`" == "0" ||
+          "`expr ${{ github.run_number }} % 3`" == "0" ||
+          "`expr ${{ github.run_number }} % 2`" == "0"
+        )
+      ) ||
       github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.enable == 'true')
     steps:
@@ -44,4 +46,4 @@ jobs:
           git pull --rebase
           commit_message="Keep writing documents at $(date +'%Y-%m-%d %H:%M:%S')"
           git commit --allow-empty -m "$commit_message"
-          git push 
+          git push      
