@@ -43,7 +43,9 @@ jobs:
           git config --local user.email ${{ secrets.EMAIL }}
           git config --local user.name ${{ secrets.NAME }}
           git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          echo "Remote repository URL: $(git remote get-url origin)"
           git pull --rebase
           commit_message="Keep writing documents at $(date +'%Y-%m-%d %H:%M:%S')"
           git commit --allow-empty -m "$commit_message"
-          git push      
+          echo "Trying to push changes..."
+          git push || { echo "Push failed. Check the remote repository URL and permissions."; exit 1; }    
