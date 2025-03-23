@@ -101,6 +101,8 @@ jobs:
                 echo "Successfully deleted run $run_id"
               else
                 echo "Failed to delete run $run_id. Status code: $status_code, Response body: $body"
+                echo "Full response: $response"  # 添加完整响应信息
+                echo "Curl command: curl -s -w \"%{http_code}\" -X DELETE -H \"Authorization: token ${{ secrets.MY_PERSONAL_ACCESS_TOKEN }}\" \"https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id\""  # 添加 curl 命令信息
               fi
             done
           else
