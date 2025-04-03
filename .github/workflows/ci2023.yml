@@ -1,4 +1,4 @@
-name: GitHub Heatmap - 2010 Special Pattern
+name: GitHub Heatmap - 2024 Special Pattern
 on:
   workflow_dispatch:
 
@@ -6,12 +6,12 @@ jobs:
   heatmap:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
+      - name: Checkout Repo  
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Generate 2010 Pattern
+      - name: Generate 2024 Pattern
         run: |
           set -e
           git config --local user.email "wangyuan0999@gmail.com"
@@ -19,10 +19,10 @@ jobs:
           git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git pull --rebase --autostash
           
-          # 2010年参数（2010-01-03为第一个完整周的周日）
-          start_date="2010-01-03"
+          # 2024年参数（2024-01-07为第一个完整周的周日）
+          start_date="2024-01-07"
           total_weeks=52
-          # 组合字符：2010
+          # 组合字符：2024
           pattern="  模式=”
             ${characters[0]} ${characters[1]} ${characters[2]} ${characters[1]}
           "
@@ -36,9 +36,9 @@ jobs:
                   local pos=$((week*5 + day))
                   if [[ "${char_data:pos:1}" == "1" ]]; then
                     commit_date=$(date -d "$start_date +$((char_start_week + week)) weeks +$day days" +"%Y-%m-%dT09:00:00Z")
-                    [[ "$commit_date" > "2010-12-31" ]] && break  # 防止跨年
+                    [[ "$commit_date" > "2024-12-31" ]] && break  # 防止跨年
                     for i in {1..30}; do  # 深绿色区域提交30次
-                      GIT_COMMITTER_DATE="$commit_date" git commit --allow-empty -m "2010" --date "$commit_date"
+                      GIT_COMMITTER_DATE="$commit_date" git commit --allow-empty -m "2024" --date "$commit_date"
                     done
                   fi
                 done
@@ -50,11 +50,12 @@ jobs:
           for ((week=0; week<52; week++)); do
             for ((day=0; day<7; day++)); do
               commit_date=$(date -d "$start_date +$week weeks +$day days" +"%Y-%m-%dT09:00:00Z")
-              [[ "$commit_date" > "2010-12-31" ]] && break
+              [[ "$commit_date" > "2024-12-31" ]] && break
               for i in {1..1}; do  # 普通绿色区域提交1次
-                GIT_COMMITTER_DATE="$commit_date" git commit --allow-empty -m "2010 Background" --date "$commit_date"
+                GIT_COMMITTER_DATE="$commit_date" git commit --allow-empty -m "2024 Background" --date "$commit_date"
               done
             done
           done
           generate_heatmap
           git push --force-with-lease
+    
