@@ -1,65 +1,66 @@
-name: ci1
+name: Auto Green 2024
 
 on:
-  # 手动触发事件
   workflow_dispatch:
     inputs:
       enable:
-        description: "启用或禁用自动 GitHub 自动全绿功能"
+        description: "启用/禁用自动提交"
         required: true
-        default: 'true'
         type: choice
         options:
           - 'true'
           - 'false'
-  push:
-    branches:
-      - master
   schedule:
-    # 每 15 分钟尝试触发一次，一天有 96 个 15 分钟的时间段
-    - cron: "*/15 * * * *"
+    # 每小时尝试触发一次（覆盖24小时）
+    - cron: "0 * * * *"
 
 jobs:
-  autogreen:
+  auto-green:
     runs-on: ubuntu-latest
-    # 检查是否满足触发条件
     if: |
       (github.event_name == 'schedule' &&
         (
-          "`expr ${{ github.run_number }} % 4`" == "0" ||
-          "`expr ${{ github.run_number }} % 3`" == "0" ||
-          "`expr ${{ github.run_number }} % 2`" == "0"
+          "`expr ${{ github.run_number }} % 24`" == "0" ||
+          "`expr ${{ github.run_number }} % 12`" == "0" ||
+          "`expr ${{ github.run_number }} % 6`" == "0"
         )
       ) ||
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.enable == 'true')
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v3
+      github.event_name == 'workflow_dispatch' && github.event.inputs.enable == 'true'
 
-      - name: Auto green
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
         run: |
-          set -e
           git config --local user.email ${{ secrets.EMAIL }}
           git config --local user.name ${{ secrets.NAME }}
           git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git pull --rebase
-          # 定义 2024 年指定日期列表
-          dates=("2024-03-31" "2024-04-03" "2024-04-04" "2024-04-05" "2024-04-06" "2024-04-07" "2024-04-10" "2024-04-13" "2024-04-14" "2024-04-17" "2024-04-20" "2024-04-21" "2024-04-24" "2024-04-27" "2024-04-28" "2024-04-29" "2024-04-30" "2024-05-01" "2024-05-04" "2024-05-19" "2024-05-20" "2024-05-21" "2024-05-22" "2024-05-23" "2024-05-24" "2024-05-25" "2024-05-26" "2024-06-01" "2024-06-02" "2024-06-08" "2024-06-09" "2024-06-15" "2024-06-16" "2024-06-17" "2024-06-18" "2024-06-19" "2024-06-20" "2024-06-21" "2024-06-22" "2024-07-07" "2024-07-10" "2024-07-11" "2024-07-12" "2024-07-13" "2024-07-14" "2024-07-17" "2024-07-20" "2024-07-21" "2024-07-24" "2024-07-27" "2024-07-28" "2024-07-31" "2024-08-03" "2024-08-04" "2024-08-05" "2024-08-06" "2024-08-07" "2024-08-10" "2024-08-25" "2024-08-26" "2024-08-27" "2024-08-28" "2024-09-04" "2024-09-11" "2024-09-18" "2024-09-22" "2024-09-23" "2024-09-24" "2024-09-25" "2024-09-26" "2024-09-27" "2024-09-28")
-          start_date="2024-01-01"  
-          end_date="2024-12-31"
-          current_date=$start_date
-          while [ "$(date -d "$current_date" +%s)" -le "$(date -d "$end_date" +%s)" ]; do
-            if printf '%s\n' "${dates[@]}" | grep -qx "$current_date"; then
-              for ((i = 0; i < 10; i++)); do
-                random_time=$(printf "%02d:%02d:%02d" $((RANDOM % 24)) $((RANDOM % 60)) $((RANDOM % 60)))
-                datetime="$current_date $random_time"
-                export GIT_COMMITTER_DATE="$datetime"
-                export GIT_AUTHOR_DATE="$datetime"
-                commit_message="Keep writing documents at $datetime (Commit $((i + 1)))"
-                git commit --allow-empty -m "$commit_message"
-              done
-            fi
-            current_date=$(date -d "$current_date + 1 day" +%Y-%m-%d)
+
+      - name: Generate random commits
+        run: |
+          set -e
+          # 生成随机提交次数（1-5次）
+          COMMIT_COUNT=$((RANDOM % 5 + 1))
+          echo "Generating $COMMIT_COUNT commits today"
+
+          # 获取当前UTC日期
+          CURRENT_DATE=$(date -u +%Y-%m-%d)
+          echo "Current date: $CURRENT_DATE"
+
+          # 生成随机提交时间
+          for i in $(seq 1 $COMMIT_COUNT); do
+              RANDOM_TIME=$(printf "%02d:%02d:%02d" $((RANDOM % 24)) $((RANDOM % 60)) $((RANDOM % 60)))
+              DATETIME="$CURRENT_DATE $RANDOM_TIME"
+              echo "Commit $i at $DATETIME"
+              
+              export GIT_COMMITTER_DATE="$DATETIME"
+              export GIT_AUTHOR_DATE="$DATETIME"
+              git commit --allow-empty -m "Daily green commit $i at $DATETIME"
           done
-          git push        
+
+      - name: Push changes
+        run: |
+          git push --force
