@@ -1,4 +1,4 @@
-name: ci
+name: ci2023
 
 on:
   # 手动触发事件
