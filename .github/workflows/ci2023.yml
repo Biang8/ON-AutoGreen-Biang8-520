@@ -1,66 +1,60 @@
-name: Auto Green 2024
-
+name: GitHub Heatmap - 2010 Special Pattern
 on:
   workflow_dispatch:
-    inputs:
-      enable:
-        description: "启用/禁用自动提交"
-        required: true
-        type: choice
-        options:
-          - 'true'
-          - 'false'
-  schedule:
-    # 每小时尝试触发一次（覆盖24小时）
-    - cron: "0 * * * *"
 
 jobs:
-  auto-green:
+  heatmap:
     runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'schedule' &&
-        (
-          "`expr ${{ github.run_number }} % 24`" == "0" ||
-          "`expr ${{ github.run_number }} % 12`" == "0" ||
-          "`expr ${{ github.run_number }} % 6`" == "0"
-        )
-      ) ||
-      github.event_name == 'workflow_dispatch' && github.event.inputs.enable == 'true'
-
     steps:
-      - name: Checkout repository
+      - name: Checkout Repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Configure Git
-        run: |
-          git config --local user.email ${{ secrets.EMAIL }}
-          git config --local user.name ${{ secrets.NAME }}
-          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-
-      - name: Generate random commits
+      - name: Generate 2010 Pattern
         run: |
           set -e
-          # 生成随机提交次数（1-5次）
-          COMMIT_COUNT=$((RANDOM % 5 + 1))
-          echo "Generating $COMMIT_COUNT commits today"
-
-          # 获取当前UTC日期
-          CURRENT_DATE=$(date -u +%Y-%m-%d)
-          echo "Current date: $CURRENT_DATE"
-
-          # 生成随机提交时间
-          for i in $(seq 1 $COMMIT_COUNT); do
-              RANDOM_TIME=$(printf "%02d:%02d:%02d" $((RANDOM % 24)) $((RANDOM % 60)) $((RANDOM % 60)))
-              DATETIME="$CURRENT_DATE $RANDOM_TIME"
-              echo "Commit $i at $DATETIME"
-              
-              export GIT_COMMITTER_DATE="$DATETIME"
-              export GIT_AUTHOR_DATE="$DATETIME"
-              git commit --allow-empty -m "Daily green commit $i at $DATETIME"
+          git config --local user.email "wangyuan0999@gmail.com"
+          git config --local user.name "Biang0"
+          git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git pull --rebase --autostash
+          
+          # 2010年参数（2010-01-03为第一个完整周的周日）
+          start_date="2010-01-03"
+          total_weeks=52
+          # 组合字符：2010
+          pattern="  模式=”
+            ${characters[0]} ${characters[1]} ${characters[2]} ${characters[1]}
+          "
+          generate_heatmap() {
+            local -a rows=($(echo "$pattern" | tr '\n' ' '))
+            local char_start_week=16  # 从周17开始显示（居中）
+            for ((char=0; char<${#rows[@]}; char++)); do
+              local char_data="${rows[char]}"
+              for ((week=0; week<5; week++)); do  # 每个字符占5周
+                for ((day=0; day<7; day++)); do  # 每天对应7天
+                  local pos=$((week*5 + day))
+                  if [[ "${char_data:pos:1}" == "1" ]]; then
+                    commit_date=$(date -d "$start_date +$((char_start_week + week)) weeks +$day days" +"%Y-%m-%dT09:00:00Z")
+                    [[ "$commit_date" > "2010-12-31" ]] && break  # 防止跨年
+                    for i in {1..30}; do  # 深绿色区域提交30次
+                      GIT_COMMITTER_DATE="$commit_date" git commit --allow-empty -m "2010" --date "$commit_date"
+                    done
+                  fi
+                done
+              done
+              char_start_week=$((char_start_week + 5))
+            done
+          }
+          # 生成全年绿色背景（低频率）
+          for ((week=0; week<52; week++)); do
+            for ((day=0; day<7; day++)); do
+              commit_date=$(date -d "$start_date +$week weeks +$day days" +"%Y-%m-%dT09:00:00Z")
+              [[ "$commit_date" > "2010-12-31" ]] && break
+              for i in {1..1}; do  # 普通绿色区域提交1次
+                GIT_COMMITTER_DATE="$commit_date" git commit --allow-empty -m "2010 Background" --date "$commit_date"
+              done
+            done
           done
-
-      - name: Push changes
-        run: |
-          git push --force
+          generate_heatmap
+          git push --force-with-lease
